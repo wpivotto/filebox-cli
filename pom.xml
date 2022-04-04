@@ -1,0 +1,328 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>file-box-cli</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>file-box-cli</name>
+	
+	 <properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>1.8</java.version>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+	</properties>
+
+	<build>
+		<outputDirectory>${basedir}/target/classes</outputDirectory>
+		<plugins>
+		
+			<plugin>
+				<executions>
+					<execution>
+						<id>run</id>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.6.0</version>
+				<configuration>
+					<mainClass>org.jboss.weld.environment.se.StartMain</mainClass>
+					<arguments>
+						<argument>${project.name}</argument>
+					</arguments>
+					<daemonThreadJoinTimeout>0</daemonThreadJoinTimeout>
+				</configuration>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.0.0</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>org.jboss.weld.environment.se.StartMain</mainClass>
+							 <addClasspath>true</addClasspath>
+							 <classpathPrefix>lib/</classpathPrefix>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.jboss.jandex</groupId>
+				<artifactId>jandex-maven-plugin</artifactId>
+				<version>1.0.8</version>
+				<executions>
+					<execution>
+					   <phase>package</phase>
+				       <id>make-index</id>
+				       <goals>
+				          <goal>jandex</goal>
+				       </goals>
+				       <configuration></configuration>
+				    </execution>
+				</executions>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.4</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<filters>
+				            <filter>
+				              <artifact>*:*</artifact>
+				              <excludes>
+				                <exclude>META-INF/*.SF</exclude>
+				                <exclude>META-INF/*.DSA</exclude>
+				                <exclude>META-INF/*.RSA</exclude>
+				              </excludes>
+				            </filter>
+				          </filters>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>org.jboss.weld.environment.se.StartMain</mainClass>
+								</transformer>
+							</transformers>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			 
+			<plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>1.7.25</version>	
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                            <configuration>
+	                            <headerType>gui</headerType>
+	                            <jar>filebox.jar</jar>
+	                            <outfile>target/filebox.exe</outfile>
+	                            <dontWrapJar>true</dontWrapJar>
+	                            <priority>high</priority>
+	                            <manifest>${project.basedir}/src/main/resources/configs/app.manifest</manifest>
+	                            <icon>${project.basedir}/src/main/resources/configs/img/app.ico</icon>
+	                            <jre>
+	                                <bundledJre64Bit>false</bundledJre64Bit>
+	                                <bundledJreAsFallback>false</bundledJreAsFallback>
+	                                <minVersion>1.8.0</minVersion>
+	                                <jdkPreference>preferJre</jdkPreference>
+	                                <runtimeBits>64/32</runtimeBits>
+	                            </jre>
+	                            <versionInfo>
+	                                <fileVersion>1.0.0.0</fileVersion>
+	                                <txtFileVersion>${project.version}</txtFileVersion>
+	                                <fileDescription>FileBox</fileDescription>
+	                                <copyright>William Pivotto</copyright>
+	                                <productVersion>1.0.0.0</productVersion>
+	                                <txtProductVersion>1.0.0.0</txtProductVersion>
+	                                <productName>FileBox</productName>
+	                                <internalName>FileBox</internalName>
+	                                <originalFilename>filebox.exe</originalFilename>
+	                                <language>PORTUGUESE_BRAZIL</language>
+	                            </versionInfo>
+                        	</configuration>
+                    </execution>
+                </executions>
+            </plugin>
+           
+            
+		</plugins>
+	</build>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+			<version>3.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.2</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>commons-beanutils</groupId>
+		    <artifactId>commons-beanutils</artifactId>
+		    <version>1.9.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-configuration2</artifactId>
+			<version>2.1.1</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>2.0.12</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>fontbox</artifactId>
+			<version>2.0.13</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-core</artifactId>
+			<version>4.5.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-highlighter</artifactId>
+			<version>4.5.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-memory</artifactId>
+			<version>4.5.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-queryparser</artifactId>
+			<version>4.5.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-analyzers-common</artifactId>
+			<version>4.5.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.javassist</groupId>
+			<artifactId>javassist</artifactId>
+			<version>3.18.2-GA</version>
+		</dependency>
+
+		 
+		<dependency>
+		    <groupId>org.apache.tika</groupId>
+		    <artifactId>tika-core</artifactId>
+		    <version>1.17</version>
+  		</dependency>
+  		
+  		<dependency>
+		    <groupId>org.apache.tika</groupId>
+		    <artifactId>tika-parsers</artifactId>
+		    <version>1.17</version>
+  		</dependency>
+  		
+  	
+  		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-JAXB-MOXy</artifactId>
+		    <version>8.3.1</version>
+		</dependency>
+		
+  		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-diffx</artifactId>
+		    <version>8.3.1</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-export-fo</artifactId>
+		    <version>8.3.1</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.jboss.weld.se</groupId>
+			<artifactId>weld-se</artifactId>
+			<version>2.4.8.Final</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.jboss</groupId>
+			<artifactId>jandex</artifactId>
+			<version>2.0.5.Final</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>com.strategicgains</groupId>
+		    <artifactId>RestExpress</artifactId>
+		    <version>0.11.3</version>
+		</dependency>
+		
+		<dependency>
+		  <groupId>com.strategicgains.plugin-express</groupId>
+		  <artifactId>CORSPlugin</artifactId>
+		  <version>0.3.3</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.25</version>
+		</dependency>
+		
+		<dependency>
+        	<groupId>org.slf4j</groupId>
+        	<artifactId>slf4j-log4j12</artifactId>
+        	<version>1.7.25</version>
+    	</dependency>
+    	
+    	<dependency>
+		    <groupId>com.strategicgains</groupId>
+		    <artifactId>RestExpress</artifactId>
+		    <version>0.11.3</version>
+		</dependency>
+		
+		<dependency>
+		  <groupId>com.strategicgains.plugin-express</groupId>
+		  <artifactId>CORSPlugin</artifactId>
+		  <version>0.3.3</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>org.imgscalr</groupId>
+		    <artifactId>imgscalr-lib</artifactId>
+		    <version>4.2</version>
+		</dependency>
+		 
+	</dependencies>
+
+
+	<repositories>
+		<repository>
+			<id>sonatype-oss-public</id>
+			<url>https://oss.sonatype.org/content/groups/public/</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<groupId>br.com.prixma</groupId>
+</project>
