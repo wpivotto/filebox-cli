@@ -76,8 +76,14 @@ mvn clean package
 
 ## Use Cases
 
-* dynamic search in electrical projects (by tag)
+* search in electrical projects
 * search in instruction manuals
-* search in calibration reports (by tag)
+* search in calibration reports
 * search in piping and instrumentation diagrams (P&ID)
 * show pictures in embedded browsers (ActiveX) on SCADA Systems 
+
+## TODO
+
+- [x] Handle text orientation in tokenizer 
+- [ ] Support for pattern replace (CAD files tend to export words without spacing)
+ 
