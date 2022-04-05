@@ -48,233 +48,230 @@ import br.com.wpivotto.filebox.pdf.SearchMatches;
 @ApplicationScoped
 public class DocSearcher {
 
-	private static final int DEFAULT_RESULT_SIZE = 500;
-	private Configs configs;
-	private DocIndexer indexer;
+  private static final int DEFAULT_RESULT_SIZE = 500;
+  private Configs configs;
+  private DocIndexer indexer;
 
-	@Inject
-	public DocSearcher(DocIndexer indexer, Configs configs) {
-		this.indexer = indexer;
-		this.configs = configs;
-	}
+  @Inject
+  public DocSearcher(DocIndexer indexer, Configs configs) {
+    this.indexer = indexer;
+    this.configs = configs;
+  }
 
-	public SearchMatches search(String queryString) {
+  public SearchMatches search(String queryString) {
 
-		List<SearchMatch> results = new ArrayList<SearchMatch>();
+    List<SearchMatch> results = new ArrayList<SearchMatch>();
 
-		IndexSearcher searcher = null;
-		Analyzer analyzer = null;
-		QueryParser parser = null;
-		
-		try {
-			
-			Directory dir = indexer.getIndexDir();
-			searcher = new IndexSearcher(DirectoryReader.open(dir));
-			analyzer = new CustomAnalyzer(configs);
-			parser = new QueryParser(Version.LUCENE_45, IndexEntry.CONTENT, analyzer);
-			
-			Query query = parser.parse(escape(queryString));
-			ScoreDoc[] queryResults = searcher.search(query, DEFAULT_RESULT_SIZE).scoreDocs;
-			
-			for (ScoreDoc hits : queryResults) {
-				
-				Document doc = searcher.doc(hits.doc);
-				
-				Path path = Paths.get(configs.getDocsFolder() + File.separator + doc.get(IndexEntry.PATH));
-				
-				SearchMatch result = new SearchMatch();
-				result.setDocument(hits.doc);
-				result.setPath(path.normalize().toString());
-				result.setPage(doc.get(IndexEntry.PAGE));
-				//result.setReference(doc.get(IndexEntry.REFERENCE));
-				result.setTerm(queryString);
-				result.setHtml(getHighlightedField(query, analyzer, IndexEntry.CONTENT, doc.get(IndexEntry.CONTENT)));
-				results.add(result);
-			}
+    IndexSearcher searcher = null;
+    Analyzer analyzer = null;
+    QueryParser parser = null;
 
-			Collections.sort(results);
+    try {
 
-			return new SearchMatches(results);
+      Directory dir = indexer.getIndexDir();
+      searcher = new IndexSearcher(DirectoryReader.open(dir));
+      analyzer = new CustomAnalyzer(configs);
+      parser = new QueryParser(Version.LUCENE_45, IndexEntry.CONTENT, analyzer);
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			return new SearchMatches();
-			
-		} finally {
-			if (analyzer != null) analyzer.close();
-		}
+      Query query = parser.parse(escape(queryString));
+      ScoreDoc[] queryResults = searcher.search(query, DEFAULT_RESULT_SIZE).scoreDocs;
 
-	}
-	
-	private String getHighlightedField(Query query, Analyzer analyzer, String fieldName, String fieldValue) throws IOException, InvalidTokenOffsetsException {
-	    Formatter formatter = new SimpleHTMLFormatter("<span class='MatchedText'>", "</span>");
-	    QueryScorer queryScorer = new QueryScorer(query, fieldName);
-	    Highlighter highlighter = new Highlighter(formatter, queryScorer);
-	    highlighter.setTextFragmenter(new SimpleSpanFragmenter(queryScorer, Integer.MAX_VALUE));
-	    highlighter.setMaxDocCharsToAnalyze(Integer.MAX_VALUE);
-	    return highlighter.getBestFragment(analyzer, fieldName, fieldValue);
-	}
-	
-	public byte[] searchFor(String term) {
-		
-		try {
-			SearchMatches matches = search(term);
-			if (matches.found()) {
-				matches.print();
-				return Files.readAllBytes(merge(matches).toPath());
-			}
-			else {
-				File file = PDFUtils.buildPDF("Term " + term + " not found");
-				return Files.readAllBytes(file.toPath());
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			File file = PDFUtils.toPDF(e);
-			try {
-				return Files.readAllBytes(file.toPath());
-			} catch (IOException e1) {
-				return null;
-			}
-		}
-	
-	}
-	
-	public Set<String> regexSearch(String regex) {
-		
-		Set<String> results = new TreeSet<>();
+      for (ScoreDoc hits : queryResults) {
 
-		IndexSearcher searcher = null;
-		Analyzer analyzer = null;
-		
-		try {
+        Document doc = searcher.doc(hits.doc);
 
-			Directory dir = indexer.getIndexDir();
-			searcher = new IndexSearcher(DirectoryReader.open(dir));
-			analyzer = new CustomAnalyzer(configs);
-			
-			RegexQuery query = new RegexQuery(new Term(IndexEntry.CONTENT, regex));
-			RegexCapabilities capability = new JavaUtilRegexCapabilities(JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE | JavaUtilRegexCapabilities.FLAG_DOTALL);
-			query.setRegexImplementation(capability);
-			query.setBoost(1.0f);
-			ScoreDoc[] queryResults = searcher.search(query, Integer.MAX_VALUE).scoreDocs;
-			
-			for (ScoreDoc hits : queryResults) {
-				Document doc = searcher.doc(hits.doc);
-				SearchMatch result = new SearchMatch();
-				result.setHtml(getHighlightedField(query, analyzer, IndexEntry.CONTENT, doc.get(IndexEntry.CONTENT)));
-				results.addAll(result.getMatches(regex));
-			}
+        Path path = Paths.get(configs.getDocsFolder() + File.separator + doc.get(IndexEntry.PATH));
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (analyzer != null) analyzer.close();
-		}
-		
-		return results;
-	}
-	
-	private String escape(String s) {
-	    StringBuilder sb = new StringBuilder();
-	    for (int i = 0; i < s.length(); i++) {
-	      char c = s.charAt(i);
-	      if (c == '\\' || c == '+' || c == '-' || c == '!' || c == '\"'
-	        || c == '^' || c == '[' || c == ']' || c == '{' || c == '}' || c == '~'
-	        || c == '*' || c == '?' || c == '|' || c == '&' || c == '/') {
-	        sb.append('\\');
-	      }
-	      sb.append(c);
-	    }
-	    return sb.toString();
-	  }
-	
-	public File merge(List<SearchMatch> matches) throws Exception {
-		
-		PDFMergerUtility merger = new PDFMergerUtility();
+        SearchMatch result = new SearchMatch();
+        result.setDocument(hits.doc);
+        result.setPath(path.normalize().toString());
+        result.setPage(doc.get(IndexEntry.PAGE));
+        // result.setReference(doc.get(IndexEntry.REFERENCE));
+        result.setTerm(queryString);
+        result.setHtml(
+            getHighlightedField(query, analyzer, IndexEntry.CONTENT, doc.get(IndexEntry.CONTENT)));
+        results.add(result);
+      }
 
-		File pdf = File.createTempFile("search", "pdf");
+      Collections.sort(results);
 
-		merger.setDestinationFileName(pdf.getAbsolutePath());
+      return new SearchMatches(results);
 
-		int i = 0;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return new SearchMatches();
 
-		for (SearchMatch match : matches) {
+    } finally {
+      if (analyzer != null) analyzer.close();
+    }
+  }
 
-			PDDocument document = match.toPDF();
+  private String getHighlightedField(
+      Query query, Analyzer analyzer, String fieldName, String fieldValue)
+      throws IOException, InvalidTokenOffsetsException {
+    Formatter formatter = new SimpleHTMLFormatter("<span class='MatchedText'>", "</span>");
+    QueryScorer queryScorer = new QueryScorer(query, fieldName);
+    Highlighter highlighter = new Highlighter(formatter, queryScorer);
+    highlighter.setTextFragmenter(new SimpleSpanFragmenter(queryScorer, Integer.MAX_VALUE));
+    highlighter.setMaxDocCharsToAnalyze(Integer.MAX_VALUE);
+    return highlighter.getBestFragment(analyzer, fieldName, fieldValue);
+  }
 
-			Splitter splitter = new Splitter();
-			splitter.setStartPage(match.getPageNo());
-			splitter.setEndPage(match.getPageNo());
+  public byte[] searchFor(String term) {
 
-			for (PDDocument part : splitter.split(document)) {
-				File tempFile = File.createTempFile("part_" + i, "pdf");
-				tempFile.deleteOnExit();
-				part.save(tempFile);
-				merger.addSource(tempFile);
-				i++;
-			}
+    try {
+      SearchMatches matches = search(term);
+      if (matches.found()) {
+        matches.print();
+        return Files.readAllBytes(merge(matches).toPath());
+      } else {
+        File file = PDFUtils.buildPDF("Term " + term + " not found");
+        return Files.readAllBytes(file.toPath());
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      File file = PDFUtils.toPDF(e);
+      try {
+        return Files.readAllBytes(file.toPath());
+      } catch (IOException e1) {
+        return null;
+      }
+    }
+  }
 
-			document.close();
-		}
-		
-		merger.mergeDocuments();
+  public Set<String> regexSearch(String regex) {
 
-		return pdf;
-	}
-	
-	private File merge(SearchMatches matches) throws Exception {
+    Set<String> results = new TreeSet<>();
 
-		PDFMergerUtility merger = new PDFMergerUtility();
+    IndexSearcher searcher = null;
+    Analyzer analyzer = null;
 
-		File pdf = File.createTempFile("search", "pdf");
+    try {
 
-		merger.setDestinationFileName(pdf.getAbsolutePath());
+      Directory dir = indexer.getIndexDir();
+      searcher = new IndexSearcher(DirectoryReader.open(dir));
+      analyzer = new CustomAnalyzer(configs);
 
-		int i = 0;
+      RegexQuery query = new RegexQuery(new Term(IndexEntry.CONTENT, regex));
+      RegexCapabilities capability =
+          new JavaUtilRegexCapabilities(
+              JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE
+                  | JavaUtilRegexCapabilities.FLAG_DOTALL);
+      query.setRegexImplementation(capability);
+      query.setBoost(1.0f);
+      ScoreDoc[] queryResults = searcher.search(query, Integer.MAX_VALUE).scoreDocs;
 
-		List<SearchMatch> values = matches.groupedByPage();
+      for (ScoreDoc hits : queryResults) {
+        Document doc = searcher.doc(hits.doc);
+        SearchMatch result = new SearchMatch();
+        result.setHtml(
+            getHighlightedField(query, analyzer, IndexEntry.CONTENT, doc.get(IndexEntry.CONTENT)));
+        results.addAll(result.getMatches(regex));
+      }
 
-		for (SearchMatch match : values) {
-			
-			PDDocument document = match.toPDF();
-			
-			Splitter splitter = new Splitter();
-			splitter.setStartPage(match.getPageNo());
-			splitter.setEndPage(match.getPageNo());
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      if (analyzer != null) analyzer.close();
+    }
 
-			for (PDDocument part : splitter.split(document)) {
-				File tempFile = File.createTempFile("part_" + i, "pdf");
-				tempFile.deleteOnExit();
-				if (configs.highlightEnabled()) {
-					highlight(part, match.getMatches());
-				}
-				part.save(tempFile);
-				merger.addSource(tempFile);
-				i++;
-			}
+    return results;
+  }
 
-			document.close();
-			
-		}
-		
-		merger.mergeDocuments();
+  private String escape(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if (c == '\\' || c == '+' || c == '-' || c == '!' || c == '\"' || c == '^' || c == '['
+          || c == ']' || c == '{' || c == '}' || c == '~' || c == '*' || c == '?' || c == '|'
+          || c == '&' || c == '/') {
+        sb.append('\\');
+      }
+      sb.append(c);
+    }
+    return sb.toString();
+  }
 
-		return pdf;
+  public File merge(List<SearchMatch> matches) throws Exception {
 
-	}
-	
-	private void highlight(PDDocument document, Set<String> terms) throws IOException {
-		
-		PDFTextExtractor extractor = new PDFTextExtractor();
-		Set<Highlight> highlights = extractor.getHighlights(terms, document);
-		for (Highlight highlight : highlights) {
-			List<PDAnnotation> annotations = document.getPage(highlight.getPageNo() - 1).getAnnotations();
-			annotations.add(highlight.getAnnotation());
-		}
-		
-	}
+    PDFMergerUtility merger = new PDFMergerUtility();
 
-	
-	
+    File pdf = File.createTempFile("search", "pdf");
 
+    merger.setDestinationFileName(pdf.getAbsolutePath());
+
+    int i = 0;
+
+    for (SearchMatch match : matches) {
+
+      PDDocument document = match.toPDF();
+
+      Splitter splitter = new Splitter();
+      splitter.setStartPage(match.getPageNo());
+      splitter.setEndPage(match.getPageNo());
+
+      for (PDDocument part : splitter.split(document)) {
+        File tempFile = File.createTempFile("part_" + i, "pdf");
+        tempFile.deleteOnExit();
+        part.save(tempFile);
+        merger.addSource(tempFile);
+        i++;
+      }
+
+      document.close();
+    }
+
+    merger.mergeDocuments();
+
+    return pdf;
+  }
+
+  private File merge(SearchMatches matches) throws Exception {
+
+    PDFMergerUtility merger = new PDFMergerUtility();
+
+    File pdf = File.createTempFile("search", "pdf");
+
+    merger.setDestinationFileName(pdf.getAbsolutePath());
+
+    int i = 0;
+
+    List<SearchMatch> values = matches.groupedByPage();
+
+    for (SearchMatch match : values) {
+
+      PDDocument document = match.toPDF();
+
+      Splitter splitter = new Splitter();
+      splitter.setStartPage(match.getPageNo());
+      splitter.setEndPage(match.getPageNo());
+
+      for (PDDocument part : splitter.split(document)) {
+        File tempFile = File.createTempFile("part_" + i, "pdf");
+        tempFile.deleteOnExit();
+        if (configs.highlightEnabled()) {
+          highlight(part, match.getMatches());
+        }
+        part.save(tempFile);
+        merger.addSource(tempFile);
+        i++;
+      }
+
+      document.close();
+    }
+
+    merger.mergeDocuments();
+
+    return pdf;
+  }
+
+  private void highlight(PDDocument document, Set<String> terms) throws IOException {
+
+    PDFTextExtractor extractor = new PDFTextExtractor();
+    Set<Highlight> highlights = extractor.getHighlights(terms, document);
+    for (Highlight highlight : highlights) {
+      List<PDAnnotation> annotations = document.getPage(highlight.getPageNo() - 1).getAnnotations();
+      annotations.add(highlight.getAnnotation());
+    }
+  }
 }
