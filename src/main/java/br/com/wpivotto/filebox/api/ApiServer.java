@@ -81,14 +81,19 @@ public class ApiServer {
 
       port = configs.getHttpPort();
     }
-
+  
     server.uri("/search", this).action("searchTerm", HttpMethod.GET);
     server.uri("/img/{filename}", this).action("serveImage", HttpMethod.GET);
+    server.uri("/ping", this).action("ping", HttpMethod.GET).noSerialization();
 
     new CorsHeaderPlugin("*")
         .flag(PUBLIC_ROUTE)
         .exposeHeaders("Location", "Vary", "Content-disposition")
         .register(server);
+  }
+  
+  public String ping(Request request, Response response) {
+	  return "pong";
   }
 
   public void searchTerm(Request request, Response response) {
